@@ -1,5 +1,5 @@
 
-
+//
 
 export function dummy() {
     console.log("global func dummy");
@@ -24,6 +24,10 @@ export function csinfo(...args : any) { uilogimpl("info", ...args); }
 export function csdebug(...args : any) { uilogimpl("debug", ...args); }
 export function cswarn(...args : any) { uilogimpl("warn", ...args); }
 export function cserror(...args : any) { uilogimpl("error", ...args); }
+export function info(...args : any) { uilogimpl("info", ...args); }
+export function debug(...args : any) { uilogimpl("debug", ...args); }
+export function warn(...args : any) { uilogimpl("warn", ...args); }
+export function error(...args : any) { uilogimpl("error", ...args); }
 
 
 export function addmylog2(...args) {
@@ -40,7 +44,7 @@ export function addmylog2(...args) {
         str += args[i] + ' ';
     }
     // let nowt = new Date();
-    // str += nowtmstr()
+    str += nowtmstr()
 
     if (arg0 == 'debug') {
         console.debug(str);
@@ -54,9 +58,27 @@ export function addmylog2(...args) {
  
 }
 
-
+let isqml = typeof setTimeout == 'undefined';
+let setTimeoutFunc = null;
+let clearTimeoutFunc = null;
+if (typeof setTimeout == 'function') {
+    setTimeoutFunc = setTimeout;
+    clearTimeoutFunc = clearTimeout;
+}
+export function settimeoutfuncs(f1, f2) {
+    // if (setTimeoutFunc == undefined) {
+        setTimeoutFunc = f1;
+    // }
+    // if (clearTimeoutFunc == undefined) {
+        clearTimeoutFunc = f2;
+    // }
+    // console.log(f1, f2);
+    // console.log(setTimeoutFunc, clearTimeoutFunc);
+}
 //////////////
+
 // once, or until, or forever
+// todo: qml: ReferenceError: setTimeout is not defined
 class fnrunner {
     name : string = "noset"
     mode: string = "noset" // once, until, forever, times
@@ -91,19 +113,21 @@ class fnrunner {
         }
     }
     runonce() {
-        this.tmer = setTimeout((me) => {
+        // console.log(setTimeoutFunc, clearTimeoutFunc);
+
+        this.tmer = setTimeoutFunc((me) => {
             this.f(...me.args);
-            clearTimeout(me.tmer);
+            clearTimeoutFunc(me.tmer);
             console.log("runfin", me.dbgstr());
         }, this.ms, this);
     }
 
     rununtil() {
-        this.tmer = setTimeout((me) => {
+        this.tmer = setTimeoutFunc((me) => {
             me.cnter++;
             let stop = this.f(...me.args);
             if (stop) {
-                window.clearTimeout(me.tmer);
+                clearTimeoutFunc(me.tmer);
                 // console.log("runfin", me);
                 console.log("runfin", me.dbgstr());
             }else {
@@ -112,7 +136,7 @@ class fnrunner {
         }, this.ms, this);
     }
     runforever() {
-        this.tmer = setTimeout((me) => {
+        this.tmer = setTimeoutFunc((me) => {
             me.cnter++;
             this.f(...me.args);
             // clearTimeout(o.tmer);
@@ -120,11 +144,11 @@ class fnrunner {
         }, this.ms, this);
     }
     runtimes() {
-        this.tmer = setTimeout((me) => {
+        this.tmer = setTimeoutFunc((me) => {
             me.cnter++;
             this.f(...me.args);
             if (me.cnter>me.times) {
-                clearTimeout(me.tmer);
+                clearTimeoutFunc(me.tmer);
                 console.log("runfin", me.dbgstr());
             }
         }, this.ms, this);
@@ -204,6 +228,66 @@ function datesubms(d1: Date, d2: Date) {
 export function empty(v) {
     return v=='' || v == null || v == undefined;
 }
+/////
+declare global {
+    interface Date {
+        tohhmm() : string; // hh:mm, no sec
+    }
+}
+Date.prototype.tohhmm = function() {
+    let me = this;
+    return objtmstrmin(me);
+}
+
+/////
+declare global {
+    interface String {
+      fmt1(...args:any): string;
+      fmt2(...args:any): string;
+      elidergt(n:number) : string;
+      elidelft(n:number) : string;
+      elidemid(n:number) : string;
+    }
+}
+// Usage: console.log("Hello, {0}!".format("World"))
+String.prototype.fmt1 = function(...args:any) {
+    let me = this;
+    for (let k in args) {
+        me = me.replace("{" + k + "}", args[k])
+    }
+    return me
+}
+// Usage: console.log("Hello, {}!".format("World"))
+String.prototype.fmt2 = function(...args:any) {
+    let me = this;
+    let s : String = me;//
+    let pos = 0;
+    for (let k in args) {
+        let p = s.indexOf('{}', pos);
+        if (p < 0) {
+            error("no more placeholder", k, args.length);
+            break;
+        }
+        let s1 = s.substring(0, p);
+        let s2 = s.substring(p+2);
+        s = me = s1 + args[k] + s2;
+        pos = p + args[k].length;
+    }
+    return me
+}
+String.prototype.elidergt = function(n:number) {
+    let me = this;
+    return me.substring(0, n) + "...";
+}
+String.prototype.elidelft = function(n:number) {
+    let me = this;
+    return "..."+me.substring(me.length-n);
+}
+String.prototype.elidemid = function(n:number) {
+    let me = this;
+    return me.substring(0, n/2) + "..." + me.substring(me.length-n/2);
+}
+
 
 // todo, for vue,web
 function getcallerinfo(skip:number)  {
@@ -249,10 +333,32 @@ function getcallerinfo(skip:number)  {
             re = new RegExp('([^@]+)@(file://[^:]+):(.+)');
             mats = re.exec(lines[i]);
             // console.log('wtffff', lines[i]);
-            // if(mats!=null){mats[1]='<closure>';}
-            // console.log("qml line", mats);
-            let bname = mats[2].split("/").pop();
-            return [bname+":"+mats[3], mats[1]];
+            if (mats!=null) {
+                // if(mats!=null){mats[1]='<closure>';}
+                // console.log("qml line", mats);
+                // console.log(mats[2]);
+                let bname = mats[2].split("/").pop();
+                if (mats[1].startsWith("expression for")) {
+                    mats[1] = mats[1].substring(15);
+                }
+                return [bname+":"+mats[3], mats[1]];
+            }
+        }
+        // qml 222
+        if (mats == null) {
+            re = new RegExp('@(file://[^:]+):(.+)');
+            mats = re.exec(lines[i]);
+            // console.log('wtffff222', lines[i]);
+            if (mats!=null) {
+                // if(mats!=null){mats[1]='<closure>';}
+                // console.log("qml line222", mats);
+                // console.log(mats[1]);
+                let bname = mats[1].split("/").pop();
+                if (mats[1].startsWith("expression for")) {
+                    mats[1] = mats[1].substring(15);
+                }
+                return [bname+":"+mats[2], '<closure>'];
+            }
         }
 
         // vuejs,web

@@ -1,5 +1,11 @@
+// for qml
+//.pragma library
+// var exports = {};
+// for qml
 
 //
+var loadcnt = 0;
+console.log("tspp.ts: multiload check",loadcnt);
 
 export function dummy() {
     console.log("global func dummy");
@@ -58,6 +64,14 @@ export function addmylog2(...args) {
  
 }
 
+/// how
+// if (typeof assert == 'undefined') {
+// export function assert(condition: unknown, msg?: string): asserts condition {
+//     if (condition === false) throw new Error(msg)
+// }
+// }
+
+/// extra compat layer
 let isqml = typeof setTimeout == 'undefined';
 let setTimeoutFunc = null;
 let clearTimeoutFunc = null;
@@ -222,8 +236,13 @@ export function objtmstrmin(dt : Date) : string {
 }
 
 // = d1-d2
-function datesubms(d1: Date, d2: Date) {
-    return d1.getMilliseconds() - d2.getMilliseconds();
+export function datesubms(d1: Date, d2: Date) {
+    return d1.valueOf() - d2.valueOf();
+}
+export function datesubmsui(d1: Date, d2: Date) {
+    let dms = d1.valueOf() - d2.valueOf();
+
+    return ''+Math.ceil(dms/1000)+'s'+(dms%1000)+'ms';
 }
 export function empty(v) {
     return v=='' || v == null || v == undefined;

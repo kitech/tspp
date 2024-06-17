@@ -132,7 +132,7 @@ class fnrunner {
         this.tmer = setTimeoutFunc((me) => {
             this.f(...me.args);
             clearTimeoutFunc(me.tmer);
-            console.log("runfin", me.dbgstr());
+            // console.log("runfin", me.dbgstr());
         }, this.ms, this);
     }
 
@@ -377,6 +377,23 @@ function getcallerinfo(skip:number)  {
                     mats[1] = mats[1].substring(15);
                 }
                 return [bname+":"+mats[2], '<closure>'];
+            }
+        }
+        // qml3
+        // qml
+        if (mats == null) {
+            re = new RegExp('([^@]+)@(qrc:[^:]+):(.+)');
+            mats = re.exec(lines[i]);
+            // console.log('wtffff', lines[i]);
+            if (mats!=null) {
+                // if(mats!=null){mats[1]='<closure>';}
+                // console.log("qml line", mats);
+                // console.log(mats[2]);
+                let bname = mats[2].split("/").pop();
+                if (mats[1].startsWith("expression for")) {
+                    mats[1] = mats[1].substring(15);
+                }
+                return [bname+":"+mats[3], mats[1]];
             }
         }
 
